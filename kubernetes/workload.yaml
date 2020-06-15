@@ -11,10 +11,18 @@ metadata:
 data:
   vault-agent.hcl: |
     vault {
-            address = "http://vault:8200"
+       address = "http://vault:8200"
+    }
+    exit_after_auth = true
+
+    listener "tcp" {
+       address = "127.0.0.1:8200"
+       tls_disable = true
     }
 
-    exit_after_auth = true
+    cache {
+      use_auto_auth_token = true
+    }
 
     auto_auth {
       method  "kubernetes" {
@@ -23,38 +31,27 @@ data:
           role = "app-sa"
         }
       }
+    }
 
-      sink "file" {
-        config {
-          path = "/home/consul-template/.vault-token"
-        }
-      }
-    }
-  consul-template.hcl: |
-    vault {
-      renew_token = false
-      vault_agent_token_file = "/home/consul-template/.vault-token"
-      retry {
-        backoff = "1s"
-      }
-    }
     template {
+      source = "/etc/vault-conf/super-password.ctemplate"
       destination = "/etc/secrets/super-password"
-      contents = <<EOF
+    }
+
+    template {
+      source = "/etc/vault-conf/cert-bundle.ctemplate"
+      destination = "/etc/secrets/cert-bundle"
+    }
+  super-password.ctemplate: |
     {{- with secret "secrets/kv/data/super-password" -}}
     {{ .Data.data.password }}
     {{- end -}}
-    EOF
-    }
-    template {
-      destination = "/etc/secrets/cert-bundle"
-      contents = <<EOF
+  cert-bundle.ctemplate: |
     {{- with secret "secrets/pki/issue/app-sa" "common_name=app-sa.internal" -}}
     {{ .Data.certificate }}
     {{ .Data.private_key }}
     {{- end -}}
-      EOF
-    }
+
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -73,9 +70,6 @@ spec:
     spec:
       serviceAccountName: app-sa
       volumes:
-        - name: consul-template
-          emptyDir:
-            medium: Memory
         - name: secrets
           emptyDir:
             medium: Memory
@@ -88,25 +82,10 @@ spec:
             capabilities:
               add:
                 - IPC_LOCK
-          image: vault:1.1.3
+          image: vault:1.4.2
           args: ["agent", "-config=/etc/vault-conf/vault-agent.hcl", "-log-level=debug"]
           volumeMounts:
-            - mountPath: /home/consul-template
-              name: consul-template
-              readOnly: false
             - mountPath: /etc/vault-conf
-              name: config
-        - name: consul-template
-          image: hashicorp/consul-template:alpine
-          args: ["-config=/etc/consul-template-conf/consul-template.hcl", "-log-level=debug", "-once"]
-          env:
-            - name: VAULT_ADDR
-              value: http://vault:8200
-          volumeMounts:
-            - mountPath: /home/consul-template
-              name: consul-template
-              readOnly: true
-            - mountPath: /etc/consul-template-conf
               name: config
             - mountPath: /etc/secrets
               name: secrets
