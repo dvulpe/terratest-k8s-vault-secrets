@@ -26,19 +26,16 @@ replace (
 )
 
 require (
-	github.com/aws/aws-sdk-go v1.21.1 // indirect
+	github.com/aws/aws-sdk-go v1.34.0 // indirect
 	github.com/go-errors/errors v1.0.1 // indirect
-	github.com/go-sql-driver/mysql v1.4.1 // indirect
 	github.com/gruntwork-io/gruntwork-cli v0.4.2 // indirect
 	github.com/gruntwork-io/terratest v0.17.5
 	github.com/hashicorp/go-retryablehttp v0.5.3
 	github.com/hashicorp/vault/api v1.0.2
 	github.com/pquerna/otp v1.2.0 // indirect
-	github.com/stretchr/testify v1.3.0
+	github.com/stretchr/testify v1.5.1
 	github.com/urfave/cli v1.20.0 // indirect
-	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
-	k8s.io/client-go v6.0.0+incompatible
-	k8s.io/kube-openapi v0.0.0-20190228160746-b3a7cee44a30
+	k8s.io/client-go v6.0.0+incompatible // indirect
 	k8s.io/kubernetes v1.15.1 // indirect
 )
